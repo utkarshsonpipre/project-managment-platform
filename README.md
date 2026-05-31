@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Project Management Platform
 
-## Getting Started
+A Jira/Trello-style project management platform: **organizations → projects → boards → tasks**, with Kanban boards, role-based access control, sprint planning, real-time collaboration, notifications, activity logs, and analytics.
 
-First, run the development server:
+Built as a full-stack **Next.js** application (UI + REST API in one app), with supporting worker and realtime processes added in later phases.
+
+## Tech stack
+
+| Layer        | Technology                                                        |
+| ------------ | ----------------------------------------------------------------- |
+| Framework    | Next.js 16 (App Router) + React 19 + TypeScript                   |
+| Styling      | Tailwind CSS                                                      |
+| Database     | PostgreSQL 16 + Prisma 7 (via `@prisma/adapter-pg` driver adapter) |
+| Auth         | Custom JWT (access + refresh) with `jose`, bcrypt password hashing, RBAC |
+| Cache/Queue  | Redis (used from Phase 4+)                                         |
+| File storage | S3-compatible (MinIO locally, AWS S3 in production)               |
+| Validation   | Zod                                                               |
+| Infra (dev)  | Docker Compose (postgres, redis, minio)                           |
+
+## Roadmap
+
+1. **Foundation** — Next.js + TS, Docker infra, Prisma schema, JWT auth + RBAC ✅
+2. **Core domain** — orgs, projects, boards, tasks CRUD + REST APIs ✅
+3. **Kanban + Sprints** — drag-and-drop (dnd-kit), task detail panel, sprint planning, shadcn/ui polish ✅
+4. **Collaboration** — realtime (Socket.IO), comments, notifications, activity logs
+5. **Analytics** — dashboards, burndown/velocity charts, Redis caching
+6. **DevOps & Cloud** — GitHub Actions CI/CD, AWS EC2 + Nginx, real S3, Prometheus + Grafana
+
+### UI
+
+shadcn/ui (Base UI primitives) + Tailwind v4, with an indigo brand theme, drag-and-drop Kanban
+(`@dnd-kit`), a task detail dialog, and a sprint-planning board (backlog + sprints, start/complete).
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20+ and npm
+- Docker Desktop (for Postgres, Redis, MinIO)
+
+### Setup
 
 ```bash
+# 1. Copy env and (optionally) regenerate JWT secrets
+cp .env.example .env
+
+# 2. Start local infrastructure (postgres, redis, minio)
+npm run infra:up
+
+# 3. Install dependencies
+npm install
+
+# 4. Apply database migrations + generate Prisma client
+npm run db:migrate
+
+# 5. Start the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App runs at http://localhost:3000 (or the next free port). Register a new account to bootstrap a workspace.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Useful scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script               | Description                              |
+| -------------------- | ---------------------------------------- |
+| `npm run dev`        | Start Next.js dev server                 |
+| `npm run build`      | Production build                         |
+| `npm run typecheck`  | Type-check the whole project             |
+| `npm run infra:up`   | Start Docker services                    |
+| `npm run infra:down` | Stop Docker services                     |
+| `npm run db:migrate` | Create/apply a Prisma migration          |
+| `npm run db:studio`  | Open Prisma Studio (DB browser)          |
 
-## Learn More
+## API overview (Phase 1)
 
-To learn more about Next.js, take a look at the following resources:
+| Method | Endpoint                          | Description                          |
+| ------ | --------------------------------- | ------------------------------------ |
+| POST   | `/api/auth/register`              | Create account + workspace, log in   |
+| POST   | `/api/auth/login`                 | Log in                               |
+| POST   | `/api/auth/refresh`               | Rotate refresh token, mint access    |
+| POST   | `/api/auth/logout`                | Revoke refresh token                 |
+| GET    | `/api/auth/me`                    | Current user + memberships           |
+| GET/POST | `/api/orgs`                     | List / create organizations          |
+| GET/POST | `/api/orgs/:orgId/projects`     | List / create projects               |
+| GET    | `/api/projects/:projectId`        | Project detail with boards           |
+| GET/POST | `/api/projects/:projectId/boards` | List / create boards               |
+| POST   | `/api/projects/:projectId/tasks`  | Create a task                        |
+| GET    | `/api/boards/:boardId`            | Board with columns + tasks           |
+| PATCH/DELETE | `/api/tasks/:taskId`        | Update (move) / delete a task        |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Roles (RBAC)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`OWNER > ADMIN > MEMBER > VIEWER`, scoped per organization. Viewers can read; members and above can create/modify projects, boards, and tasks.
 
-## Deploy on Vercel
+## Architecture notes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Prisma 7** no longer puts the connection URL in `schema.prisma`. It lives in `prisma.config.ts`; the runtime client connects through the `pg` driver adapter (`src/lib/db.ts`).
+- **Auth** is verified inside route handlers via `requireUser()` / `requireOrgRole()` helpers rather than in `proxy.ts` (Next 16's renamed middleware), which is the recommended pattern for real authorization.
+- Refresh tokens are **opaque and stored hashed** (SHA-256) for server-side revocation and rotation.
