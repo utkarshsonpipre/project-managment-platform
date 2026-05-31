@@ -22,14 +22,25 @@ Built as a full-stack **Next.js** application (UI + REST API in one app), with s
 1. **Foundation** — Next.js + TS, Docker infra, Prisma schema, JWT auth + RBAC ✅
 2. **Core domain** — orgs, projects, boards, tasks CRUD + REST APIs ✅
 3. **Kanban + Sprints** — drag-and-drop (dnd-kit), task detail panel, sprint planning, shadcn/ui polish ✅
-4. **Collaboration** — realtime (Socket.IO), comments, notifications, activity logs
+4. **Collaboration** — comments, activity logs, notifications, realtime (Socket.IO + Redis pub/sub), team members ✅
 5. **Analytics** — dashboards, burndown/velocity charts, Redis caching
 6. **DevOps & Cloud** — GitHub Actions CI/CD, AWS EC2 + Nginx, real S3, Prometheus + Grafana
 
 ### UI
 
 shadcn/ui (Base UI primitives) + Tailwind v4, with an indigo brand theme, drag-and-drop Kanban
-(`@dnd-kit`), a task detail dialog, and a sprint-planning board (backlog + sprints, start/complete).
+(`@dnd-kit`), a task detail dialog with comments, a sprint-planning board (backlog + sprints,
+start/complete), a notification bell, and a project activity feed.
+
+### Realtime
+
+A standalone Socket.IO server (`server/realtime.ts`) authenticates sockets via the same httpOnly
+JWT cookie, then relays events published to Redis by the API. Boards and the sprint board live-update
+across clients, and the notification bell updates instantly. Run it alongside the app:
+
+```bash
+npm run realtime      # ws server on :4001 (or npm run dev:realtime to watch)
+```
 
 ## Getting started
 

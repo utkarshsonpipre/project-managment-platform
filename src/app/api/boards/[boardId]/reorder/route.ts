@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { ApiError, readJson, route } from "@/lib/http";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectRole } from "@/lib/auth/rbac";
+import { publishProjectUpdate } from "@/lib/services/realtime";
 
 type Ctx = { params: Promise<{ boardId: string }> };
 
@@ -64,6 +65,8 @@ export const PATCH = route(async (req, ctx: Ctx) => {
       ),
     ),
   );
+
+  await publishProjectUpdate(board.projectId);
 
   return Response.json({ ok: true });
 });

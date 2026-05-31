@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Priority, SprintStatus } from "@prisma/client";
+import { Priority, Role, SprintStatus } from "@prisma/client";
 
 // ---- Auth ----
 
@@ -18,6 +18,11 @@ export const loginSchema = z.object({
 
 export const createOrgSchema = z.object({
   name: z.string().min(1, "Name is required").max(120),
+});
+
+export const addMemberSchema = z.object({
+  email: z.email("A valid email is required"),
+  role: z.enum(Role).optional(),
 });
 
 // ---- Projects ----
@@ -59,6 +64,12 @@ export const updateTaskSchema = z.object({
   assigneeId: z.string().nullable().optional(),
   position: z.number().int().min(0).optional(),
   dueDate: z.iso.datetime().nullable().optional(),
+});
+
+// ---- Comments ----
+
+export const createCommentSchema = z.object({
+  body: z.string().min(1, "Comment cannot be empty").max(5000),
 });
 
 // ---- Sprints ----

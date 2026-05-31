@@ -9,6 +9,7 @@ import {
   Avatar,
   AvatarFallback,
 } from "@/components/ui/avatar";
+import { NotificationBell } from "@/components/NotificationBell";
 import { initials } from "@/lib/ui";
 
 export function TopBar({ userName }: { userName?: string }) {
@@ -30,6 +31,7 @@ export function TopBar({ userName }: { userName?: string }) {
           <span>PM Platform</span>
         </Link>
         <div className="flex items-center gap-3">
+          <NotificationBell />
           {userName && (
             <div className="flex items-center gap-2">
               <Avatar className="size-7">

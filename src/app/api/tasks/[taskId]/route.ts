@@ -1,16 +1,19 @@
-import { Prisma, Role } from "@prisma/client";
+import { ActivityVerb, NotificationType, Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { ApiError, readJson, route } from "@/lib/http";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectRole } from "@/lib/auth/rbac";
 import { updateTaskSchema } from "@/lib/validation";
+import { recordActivity } from "@/lib/services/activity";
+import { notify } from "@/lib/services/notifications";
+import { publishProjectUpdate } from "@/lib/services/realtime";
 
 type Ctx = { params: Promise<{ taskId: string }> };
 
 async function loadTaskProject(taskId: string) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { id: true, projectId: true },
+    select: { id: true, projectId: true, title: true, assigneeId: true },
   });
   if (!task) throw new ApiError(404, "Task not found");
   return task;
@@ -109,6 +112,32 @@ export const PATCH = route(async (req, ctx: Ctx) => {
     },
   });
 
+  // Record + notify when the assignee changes to a new person.
+  if (
+    data.assigneeId !== undefined &&
+    updated.assignee &&
+    updated.assignee.id !== task.assigneeId
+  ) {
+    await recordActivity({
+      projectId: task.projectId,
+      actorId: user.id,
+      verb: ActivityVerb.ASSIGNED,
+      entity: "task",
+      entityId: task.id,
+      summary: `${user.name} assigned "${updated.title}" to ${updated.assignee.name}`,
+    });
+    if (updated.assignee.id !== user.id) {
+      await notify({
+        userId: updated.assignee.id,
+        type: NotificationType.TASK_ASSIGNED,
+        message: `${user.name} assigned you "${updated.title}"`,
+        link: `/projects/${task.projectId}`,
+      });
+    }
+  }
+
+  await publishProjectUpdate(task.projectId);
+
   return Response.json({ task: updated });
 });
 
@@ -120,5 +149,16 @@ export const DELETE = route(async (_req, ctx: Ctx) => {
   await requireProjectRole(user.id, task.projectId, Role.MEMBER);
 
   await prisma.task.delete({ where: { id: taskId } });
+
+  await recordActivity({
+    projectId: task.projectId,
+    actorId: user.id,
+    verb: ActivityVerb.DELETED,
+    entity: "task",
+    entityId: task.id,
+    summary: `${user.name} deleted "${task.title}"`,
+  });
+  await publishProjectUpdate(task.projectId);
+
   return Response.json({ ok: true });
 });

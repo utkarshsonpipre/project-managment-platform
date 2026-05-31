@@ -4,6 +4,7 @@ import { readJson, route } from "@/lib/http";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectRole } from "@/lib/auth/rbac";
 import { createSprintSchema } from "@/lib/validation";
+import { publishProjectUpdate } from "@/lib/services/realtime";
 
 type Ctx = { params: Promise<{ projectId: string }> };
 
@@ -65,6 +66,8 @@ export const POST = route(async (req, ctx: Ctx) => {
       endDate: true,
     },
   });
+
+  await publishProjectUpdate(projectId);
 
   return Response.json({ sprint: { ...sprint, taskCount: 0 } }, { status: 201 });
 });

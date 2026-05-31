@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, KanbanSquare, Loader2, Plus, Rocket } from "lucide-react";
+import { Activity, ArrowLeft, KanbanSquare, Loader2, Plus, Rocket } from "lucide-react";
 import { api, ApiClientError } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { timeAgo } from "@/lib/ui";
+import type { Activity as ActivityItem } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +30,7 @@ export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
 
   const [project, setProject] = useState<ProjectDetail | null>(null);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function load() {
@@ -36,6 +39,10 @@ export default function ProjectPage() {
         `/api/projects/${projectId}`,
       );
       setProject(project);
+      const { activity } = await api
+        .get<{ activity: ActivityItem[] }>(`/api/projects/${projectId}/activity`)
+        .catch(() => ({ activity: [] as ActivityItem[] }));
+      setActivity(activity);
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 401) {
         router.replace("/login");
@@ -131,6 +138,31 @@ export default function ProjectPage() {
                 </Link>
               ))}
             </div>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="flex items-center gap-2 text-lg font-medium">
+            <Activity className="size-5 text-primary" /> Recent activity
+          </h2>
+          {activity.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No activity yet.</p>
+          ) : (
+            <Card>
+              <CardContent className="divide-y p-0">
+                {activity.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm"
+                  >
+                    <span>{a.summary}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {timeAgo(a.createdAt)}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           )}
         </section>
       </main>

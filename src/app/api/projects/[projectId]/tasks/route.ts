@@ -1,9 +1,11 @@
-import { Priority, Role } from "@prisma/client";
+import { ActivityVerb, Priority, Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { ApiError, readJson, route } from "@/lib/http";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectRole } from "@/lib/auth/rbac";
 import { createTaskSchema } from "@/lib/validation";
+import { recordActivity } from "@/lib/services/activity";
+import { publishProjectUpdate } from "@/lib/services/realtime";
 
 type Ctx = { params: Promise<{ projectId: string }> };
 
@@ -52,6 +54,16 @@ export const POST = route(async (req, ctx: Ctx) => {
       assignee: { select: { id: true, name: true } },
     },
   });
+
+  await recordActivity({
+    projectId,
+    actorId: user.id,
+    verb: ActivityVerb.CREATED,
+    entity: "task",
+    entityId: task.id,
+    summary: `${user.name} created "${task.title}"`,
+  });
+  await publishProjectUpdate(projectId);
 
   return Response.json({ task }, { status: 201 });
 });

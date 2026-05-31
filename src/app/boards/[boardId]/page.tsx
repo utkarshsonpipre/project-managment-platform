@@ -25,6 +25,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { api, ApiClientError } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 import { TopBar } from "@/components/TopBar";
 import { TaskDialog } from "@/components/board/TaskDialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -42,6 +43,7 @@ export default function BoardPage() {
   const [activeTask, setActiveTask] = useState<TaskCard | null>(null);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>();
 
   const columnsRef = useRef<BoardColumn[]>([]);
   useEffect(() => {
@@ -61,6 +63,10 @@ export default function BoardPage() {
         .get<{ members: Member[] }>(`/api/projects/${board.projectId}/members`)
         .catch(() => ({ members: [] as Member[] }));
       setMembers(members);
+      const { user } = await api
+        .get<{ user: { id: string } | null }>("/api/auth/me")
+        .catch(() => ({ user: null }));
+      if (user) setCurrentUserId(user.id);
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 401) {
         router.replace("/login");
@@ -76,6 +82,26 @@ export default function BoardPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId]);
+
+  // Keep a stable reference to the latest load() for the realtime handler.
+  const loadRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    loadRef.current = load;
+  });
+
+  // Live updates: join the project room, refetch when anyone changes it.
+  useEffect(() => {
+    const projectId = board?.projectId;
+    if (!projectId) return;
+    const socket = getSocket();
+    socket.emit("join:project", projectId);
+    const onUpdate = () => loadRef.current();
+    socket.on("project:updated", onUpdate);
+    return () => {
+      socket.off("project:updated", onUpdate);
+      socket.emit("leave:project", projectId);
+    };
+  }, [board?.projectId]);
 
   function persist(cols: BoardColumn[]) {
     api
@@ -236,6 +262,7 @@ export default function BoardPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         members={members}
+        currentUserId={currentUserId}
         onSaved={load}
         onDeleted={load}
       />

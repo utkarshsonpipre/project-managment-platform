@@ -99,6 +99,43 @@ export interface PlanningData {
   sprints: SprintWithTasks[];
 }
 
+export type NotificationType = "TASK_ASSIGNED" | "TASK_COMMENTED";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  message: string;
+  link: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export type ActivityVerb =
+  | "CREATED"
+  | "UPDATED"
+  | "MOVED"
+  | "DELETED"
+  | "COMMENTED"
+  | "ASSIGNED"
+  | "SPRINT_STARTED"
+  | "SPRINT_COMPLETED";
+
+export interface Activity {
+  id: string;
+  verb: ActivityVerb;
+  entity: string;
+  summary: string;
+  createdAt: string;
+  actor: { id: string; name: string } | null;
+}
+
+export interface Comment {
+  id: string;
+  body: string;
+  createdAt: string;
+  author: { id: string; name: string };
+}
+
 export interface TaskFull {
   id: string;
   projectId: string;

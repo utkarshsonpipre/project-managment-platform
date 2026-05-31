@@ -37,6 +37,9 @@ yarn-error.log*
 # claude code local settings
 .claude/
 
+# stray editor temp files
+*.tmp.*
+
 # vercel
 .vercel
 

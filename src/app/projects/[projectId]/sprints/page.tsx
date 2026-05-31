@@ -15,6 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { api, ApiClientError } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 import { TopBar } from "@/components/TopBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,6 +88,19 @@ export default function SprintPlanningPage() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  // Live updates while planning.
+  useEffect(() => {
+    const socket = getSocket();
+    socket.emit("join:project", projectId);
+    const onUpdate = () => load();
+    socket.on("project:updated", onUpdate);
+    return () => {
+      socket.off("project:updated", onUpdate);
+      socket.emit("leave:project", projectId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 

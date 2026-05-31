@@ -1,16 +1,18 @@
-import { Prisma, Role, SprintStatus } from "@prisma/client";
+import { ActivityVerb, Prisma, Role, SprintStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { ApiError, readJson, route } from "@/lib/http";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectRole } from "@/lib/auth/rbac";
 import { updateSprintSchema } from "@/lib/validation";
+import { recordActivity } from "@/lib/services/activity";
+import { publishProjectUpdate } from "@/lib/services/realtime";
 
 type Ctx = { params: Promise<{ sprintId: string }> };
 
 async function loadSprint(sprintId: string) {
   const sprint = await prisma.sprint.findUnique({
     where: { id: sprintId },
-    select: { id: true, projectId: true, startDate: true, endDate: true },
+    select: { id: true, projectId: true, name: true, startDate: true, endDate: true },
   });
   if (!sprint) throw new ApiError(404, "Sprint not found");
   return sprint;
@@ -97,6 +99,20 @@ export const PATCH = route(async (req, ctx: Ctx) => {
     },
   });
 
+  if (data.status === SprintStatus.ACTIVE || data.status === SprintStatus.COMPLETED) {
+    const started = data.status === SprintStatus.ACTIVE;
+    await recordActivity({
+      projectId: sprint.projectId,
+      actorId: user.id,
+      verb: started ? ActivityVerb.SPRINT_STARTED : ActivityVerb.SPRINT_COMPLETED,
+      entity: "sprint",
+      entityId: sprint.id,
+      summary: `${user.name} ${started ? "started" : "completed"} sprint "${updated.name}"`,
+    });
+  }
+
+  await publishProjectUpdate(sprint.projectId);
+
   return Response.json({ sprint: updated });
 });
 
@@ -108,5 +124,6 @@ export const DELETE = route(async (_req, ctx: Ctx) => {
   await requireProjectRole(user.id, sprint.projectId, Role.MEMBER);
 
   await prisma.sprint.delete({ where: { id: sprintId } });
+  await publishProjectUpdate(sprint.projectId);
   return Response.json({ ok: true });
 });
