@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1
+# Shared image for the standalone Node services (realtime + worker), run via tsx.
+# The compose file overrides the command per service.
+
+FROM node:22-alpine
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY tsconfig.json ./
+COPY prisma.config.ts ./
+COPY prisma ./prisma
+COPY server ./server
+COPY src ./src
+
+EXPOSE 4001
+# Default command; docker-compose overrides this for the worker.
+CMD ["npx", "tsx", "server/realtime.ts"]

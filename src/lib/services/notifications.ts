@@ -1,6 +1,7 @@
 import { NotificationType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { publishUserNotification } from "@/lib/services/realtime";
+import { enqueueEmail } from "@/lib/queue";
 
 export interface NotifyInput {
   userId: string;
@@ -24,6 +25,11 @@ export async function notify(input: NotifyInput): Promise<void> {
       },
     });
     await publishUserNotification(input.userId);
+    await enqueueEmail({
+      userId: input.userId,
+      subject: "You have a new notification",
+      body: input.message,
+    });
   } catch (err) {
     console.error("[notify] failed to create notification:", err);
   }

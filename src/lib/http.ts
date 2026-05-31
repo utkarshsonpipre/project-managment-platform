@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { ZodError, type ZodType } from "zod";
+import { apiRequestsCounter } from "@/lib/metrics";
 
 /** Throw this anywhere inside a route handler to return a clean HTTP error. */
 export class ApiError extends Error {
@@ -20,14 +21,14 @@ type RouteHandler<C> = (req: NextRequest, ctx: C) => Promise<Response> | Respons
  */
 export function route<C>(handler: RouteHandler<C>): RouteHandler<C> {
   return async (req, ctx) => {
+    let res: Response;
     try {
-      return await handler(req, ctx);
+      res = await handler(req, ctx);
     } catch (err) {
       if (err instanceof ApiError) {
-        return Response.json({ error: err.message }, { status: err.status });
-      }
-      if (err instanceof ZodError) {
-        return Response.json(
+        res = Response.json({ error: err.message }, { status: err.status });
+      } else if (err instanceof ZodError) {
+        res = Response.json(
           {
             error: "Validation failed",
             issues: err.issues.map((i) => ({
@@ -37,10 +38,17 @@ export function route<C>(handler: RouteHandler<C>): RouteHandler<C> {
           },
           { status: 422 },
         );
+      } else {
+        console.error("[API] Unhandled error:", err);
+        res = Response.json({ error: "Internal server error" }, { status: 500 });
       }
-      console.error("[API] Unhandled error:", err);
-      return Response.json({ error: "Internal server error" }, { status: 500 });
     }
+    try {
+      apiRequestsCounter().inc({ status: String(res.status) });
+    } catch {
+      // never let metrics break a response
+    }
+    return res;
   };
 }
 

@@ -24,7 +24,30 @@ Built as a full-stack **Next.js** application (UI + REST API in one app), with s
 3. **Kanban + Sprints** — drag-and-drop (dnd-kit), task detail panel, sprint planning, shadcn/ui polish ✅
 4. **Collaboration** — comments, activity logs, notifications, realtime (Socket.IO + Redis pub/sub), team members ✅
 5. **Analytics** — project dashboard with charts (Recharts) + Redis-cached metrics API ✅
-6. **DevOps & Cloud** — GitHub Actions CI/CD, AWS EC2 + Nginx, real S3, Prometheus + Grafana
+6. **DevOps & Cloud** — Dockerized services, GitHub Actions CI/CD, Nginx reverse proxy, Prometheus + Grafana, BullMQ worker ✅
+
+## Production & operations
+
+The whole stack runs via `docker-compose.prod.yml`: **web** (standalone Next image) · **realtime** · **worker** · **migrate** (one-shot) · **postgres** · **redis** · **minio** · **nginx** (reverse proxy on :80, routes `/socket.io/` to realtime) · **prometheus** (:9090) · **grafana** (:3002).
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+- **Background jobs**: a BullMQ **worker** (`server/worker.ts`) consumes an email queue that the API enqueues whenever a notification is created. Run locally with `npm run worker`.
+- **Metrics**: the app exposes Prometheus metrics at `/api/metrics` (default Node metrics + a `pmp_api_requests_total` counter). Prometheus scrapes it; **Grafana** auto-provisions a Prometheus datasource and a "PM Platform — Overview" dashboard.
+- **CI/CD**: `.github/workflows/ci.yml` runs lint → typecheck → build on every push/PR, builds & pushes the web + node images to GHCR on the default branch, and has an SSH deploy-to-EC2 job (set `EC2_HOST`/`EC2_USER`/`EC2_SSH_KEY` secrets).
+- **Images**: multi-stage `Dockerfile` (Next standalone) and `Dockerfile.node` (realtime/worker/migrate via `tsx`).
+
+### Full local run (all services)
+
+```bash
+npm run infra:up        # postgres, redis, minio
+npm run db:migrate
+npm run dev             # web on :3000/:3001
+npm run realtime        # ws on :4001
+npm run worker          # background jobs
+```
 
 ### Analytics
 
