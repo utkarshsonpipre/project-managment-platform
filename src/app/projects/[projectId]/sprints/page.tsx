@@ -336,7 +336,7 @@ function TaskRow({
 }) {
   const meta = PRIORITY_META[task.priority];
   return (
-    <div className="rounded-lg border bg-card p-2.5 shadow-sm">
+    <div className={`rounded-lg border border-l-4 ${meta.bar} bg-card p-2.5 shadow-sm transition-shadow hover:shadow-md`}>
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm leading-snug">{task.title}</p>
         {task.assignee && (

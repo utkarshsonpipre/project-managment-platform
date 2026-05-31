@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ROLE_BADGE, canManage } from "@/lib/ui";
+import { ROLE_BADGE, accentFor, canManage } from "@/lib/ui";
 import type { Me, Org, Project } from "@/lib/types";
 
 function errMsg(err: unknown) {
@@ -69,8 +70,16 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        <Loader2 className="mr-2 animate-spin" /> Loading…
+      <div className="min-h-screen bg-muted/30">
+        <TopBar />
+        <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 md:grid-cols-[260px_1fr]">
+          <Skeleton className="hidden h-64 rounded-xl md:block" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 rounded-xl" />
+            ))}
+          </div>
+        </main>
       </div>
     );
   }
@@ -150,7 +159,10 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {projects.map((p) => (
                 <Link key={p.id} href={`/projects/${p.id}`}>
-                  <Card className="h-full transition-shadow hover:shadow-md hover:ring-1 hover:ring-primary/30">
+                  <Card className="relative h-full overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md">
+                    <span
+                      className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${accentFor(p.key)}`}
+                    />
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base">{p.name}</CardTitle>

@@ -18,9 +18,8 @@ import { TopBar } from "@/components/TopBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { timeAgo } from "@/lib/ui";
+import { accentFor, timeAgo } from "@/lib/ui";
 import type { Activity as ActivityItem } from "@/lib/types";
 import {
   Dialog,
@@ -88,38 +87,51 @@ export default function ProjectPage() {
     <div className="min-h-screen bg-muted/30">
       <TopBar />
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
-        <div>
+        <div className="space-y-3">
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="size-4" /> Dashboard
           </Link>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold">{project.name}</h1>
-            <Badge variant="outline" className="font-mono text-primary">
-              {project.key}
-            </Badge>
-            <div className="ml-auto flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                render={<Link href={`/projects/${project.id}/analytics`} />}
+
+          <Card className="overflow-hidden">
+            <div className={`h-1.5 w-full bg-gradient-to-r ${accentFor(project.key)}`} />
+            <CardContent className="flex flex-wrap items-center gap-4 py-4">
+              <span
+                className={`flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${accentFor(project.key)} font-mono text-sm font-semibold text-white shadow-sm`}
               >
-                <ChartColumn /> Analytics
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                render={<Link href={`/projects/${project.id}/sprints`} />}
-              >
-                <Rocket /> Sprint planning
-              </Button>
-            </div>
-          </div>
-          {project.description && (
-            <p className="mt-1 text-muted-foreground">{project.description}</p>
-          )}
+                {project.key.slice(0, 3)}
+              </span>
+              <div className="min-w-0">
+                <h1 className="truncate text-2xl font-semibold">{project.name}</h1>
+                {project.description ? (
+                  <p className="text-sm text-muted-foreground">{project.description}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground/60">
+                    Project key{" "}
+                    <span className="font-mono text-primary">{project.key}</span>
+                  </p>
+                )}
+              </div>
+              <div className="ml-auto flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={<Link href={`/projects/${project.id}/analytics`} />}
+                >
+                  <ChartColumn /> Analytics
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={<Link href={`/projects/${project.id}/sprints`} />}
+                >
+                  <Rocket /> Sprint planning
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <section className="space-y-3">
@@ -141,9 +153,9 @@ export default function ProjectPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {project.boards.map((b) => (
                 <Link key={b.id} href={`/boards/${b.id}`}>
-                  <Card className="transition-shadow hover:shadow-md hover:ring-1 hover:ring-primary/30">
+                  <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
                     <CardContent className="flex items-center gap-3 py-4">
-                      <span className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <span className="brand-gradient flex size-9 items-center justify-center rounded-lg text-white">
                         <KanbanSquare className="size-5" />
                       </span>
                       <div>

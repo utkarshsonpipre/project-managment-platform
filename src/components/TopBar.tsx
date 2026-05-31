@@ -10,6 +10,7 @@ import {
   AvatarFallback,
 } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { initials } from "@/lib/ui";
 
 export function TopBar({ userName }: { userName?: string }) {
@@ -25,12 +26,13 @@ export function TopBar({ userName }: { userName?: string }) {
     <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <span className="brand-gradient flex size-7 items-center justify-center rounded-lg text-white shadow-sm">
             <LayoutDashboard className="size-4" />
           </span>
           <span>PM Platform</span>
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           <NotificationBell />
           {userName && (
             <div className="flex items-center gap-2">

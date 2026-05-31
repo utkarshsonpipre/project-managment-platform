@@ -29,27 +29,28 @@ import {
 import { api, ApiClientError } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PRIORITY_META } from "@/lib/ui";
 import type { Analytics, Priority } from "@/lib/types";
 
-const PRIORITY_COLORS: Record<Priority, string> = {
-  LOW: "#94a3b8",
-  MEDIUM: "#3b82f6",
-  HIGH: "#f59e0b",
-  URGENT: "#ef4444",
-};
 const PRIMARY = "#6366f1";
-const BAR_PALETTE = ["#6366f1", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#64748b"];
+const BAR_PALETTE = [
+  "#6366f1",
+  "#8b5cf6",
+  "#06b6d4",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#ec4899",
+  "#64748b",
+];
+
+// Theme-aware axis/grid styling (currentColor inherits from the muted parent).
+const AXIS_TICK = { fontSize: 12, fill: "currentColor" } as const;
+const GRID = { stroke: "currentColor", strokeOpacity: 0.15 } as const;
 
 function shortDate(iso: string) {
   const d = new Date(iso);
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
-}
-
-// Recharts types its label render props loosely; the data fields are present at
-// runtime but not in PieLabelRenderProps, so we narrow via unknown.
-function priorityLabel(props: unknown): string {
-  const p = props as { priority?: string; count?: number };
-  return `${p.priority}: ${p.count}`;
 }
 
 export default function AnalyticsPage() {
@@ -126,9 +127,9 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {/* Priority pie */}
+          {/* Priority pie + theme-safe legend */}
           <ChartCard title="Tasks by priority">
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={220} className="text-muted-foreground">
               <PieChart>
                 <Pie
                   data={data.byPriority}
@@ -137,25 +138,37 @@ export default function AnalyticsPage() {
                   innerRadius={55}
                   outerRadius={90}
                   paddingAngle={2}
-                  label={priorityLabel}
+                  stroke="none"
                 >
                   {data.byPriority.map((p) => (
-                    <Cell key={p.priority} fill={PRIORITY_COLORS[p.priority]} />
+                    <Cell key={p.priority} fill={PRIORITY_META[p.priority as Priority].hex} />
                   ))}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
+            <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+              {data.byPriority.map((p) => (
+                <span key={p.priority} className="flex items-center gap-1.5 text-xs">
+                  <span
+                    className="size-2.5 rounded-full"
+                    style={{ background: PRIORITY_META[p.priority as Priority].hex }}
+                  />
+                  {PRIORITY_META[p.priority as Priority].label}
+                  <span className="text-muted-foreground">{p.count}</span>
+                </span>
+              ))}
+            </div>
           </ChartCard>
 
           {/* Status bar */}
           <ChartCard title="Tasks by status">
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={260} className="text-muted-foreground">
               <BarChart data={data.byColumn}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" fontSize={12} />
-                <YAxis allowDecimals={false} fontSize={12} />
-                <Tooltip />
+                <CartesianGrid {...GRID} vertical={false} />
+                <XAxis dataKey="name" tick={AXIS_TICK} />
+                <YAxis allowDecimals={false} tick={AXIS_TICK} />
+                <Tooltip cursor={{ fill: "currentColor", fillOpacity: 0.06 }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {data.byColumn.map((_, i) => (
                     <Cell key={i} fill={BAR_PALETTE[i % BAR_PALETTE.length]} />
@@ -170,12 +183,12 @@ export default function AnalyticsPage() {
             {data.byAssignee.length === 0 ? (
               <Empty />
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={260} className="text-muted-foreground">
                 <BarChart data={data.byAssignee} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} fontSize={12} />
-                  <YAxis type="category" dataKey="name" width={90} fontSize={12} />
-                  <Tooltip />
+                  <CartesianGrid {...GRID} horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={AXIS_TICK} />
+                  <YAxis type="category" dataKey="name" width={90} tick={AXIS_TICK} />
+                  <Tooltip cursor={{ fill: "currentColor", fillOpacity: 0.06 }} />
                   <Bar dataKey="count" fill={PRIMARY} radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -187,12 +200,12 @@ export default function AnalyticsPage() {
             {data.velocity.length === 0 ? (
               <Empty hint="No sprints yet" />
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={260} className="text-muted-foreground">
                 <BarChart data={data.velocity}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="sprint" fontSize={12} />
-                  <YAxis allowDecimals={false} fontSize={12} />
-                  <Tooltip />
+                  <CartesianGrid {...GRID} vertical={false} />
+                  <XAxis dataKey="sprint" tick={AXIS_TICK} />
+                  <YAxis allowDecimals={false} tick={AXIS_TICK} />
+                  <Tooltip cursor={{ fill: "currentColor", fillOpacity: 0.06 }} />
                   <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -202,7 +215,7 @@ export default function AnalyticsPage() {
 
         {/* Throughput full width */}
         <ChartCard title="Task throughput (last 14 days)">
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={280} className="text-muted-foreground">
             <AreaChart data={data.throughput}>
               <defs>
                 <linearGradient id="fillCumulative" x1="0" y1="0" x2="0" y2="1">
@@ -210,9 +223,9 @@ export default function AnalyticsPage() {
                   <stop offset="95%" stopColor={PRIMARY} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="date" tickFormatter={shortDate} fontSize={12} />
-              <YAxis allowDecimals={false} fontSize={12} />
+              <CartesianGrid {...GRID} vertical={false} />
+              <XAxis dataKey="date" tickFormatter={shortDate} tick={AXIS_TICK} />
+              <YAxis allowDecimals={false} tick={AXIS_TICK} />
               <Tooltip labelFormatter={(l) => shortDate(String(l))} />
               <Area
                 type="monotone"
@@ -242,7 +255,7 @@ function Stat({
   return (
     <Card>
       <CardContent className="flex items-center gap-3 py-4">
-        <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <span className="brand-gradient flex size-10 items-center justify-center rounded-lg text-white">
           {icon}
         </span>
         <div>

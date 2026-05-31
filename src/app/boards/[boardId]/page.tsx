@@ -378,7 +378,7 @@ function TaskCardView({ task, dragging }: { task: TaskCard; dragging?: boolean }
   const meta = PRIORITY_META[task.priority];
   return (
     <div
-      className={`rounded-lg border bg-card p-3 shadow-sm ${
+      className={`rounded-lg border border-l-4 ${meta.bar} bg-card p-3 shadow-sm transition-shadow hover:shadow-md ${
         dragging ? "rotate-2 shadow-lg ring-1 ring-primary/30" : ""
       }`}
     >
