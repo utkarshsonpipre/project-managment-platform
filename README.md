@@ -23,8 +23,14 @@ Built as a full-stack **Next.js** application (UI + REST API in one app), with s
 2. **Core domain** — orgs, projects, boards, tasks CRUD + REST APIs ✅
 3. **Kanban + Sprints** — drag-and-drop (dnd-kit), task detail panel, sprint planning, shadcn/ui polish ✅
 4. **Collaboration** — comments, activity logs, notifications, realtime (Socket.IO + Redis pub/sub), team members ✅
-5. **Analytics** — dashboards, burndown/velocity charts, Redis caching
+5. **Analytics** — project dashboard with charts (Recharts) + Redis-cached metrics API ✅
 6. **DevOps & Cloud** — GitHub Actions CI/CD, AWS EC2 + Nginx, real S3, Prometheus + Grafana
+
+### Analytics
+
+Each project has an analytics dashboard (`/projects/:id/analytics`): stat cards plus priority,
+status, assignee-workload, sprint-velocity, and 14-day throughput charts. The aggregation endpoint
+caches its result in Redis (30s TTL) — a cache hit is flagged in the response.
 
 ### UI
 

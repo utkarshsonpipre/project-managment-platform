@@ -99,6 +99,16 @@ export interface PlanningData {
   sprints: SprintWithTasks[];
 }
 
+export interface Analytics {
+  totals: { tasks: number; completed: number; sprints: number; members: number };
+  byPriority: { priority: Priority; count: number }[];
+  byColumn: { name: string; count: number }[];
+  byAssignee: { name: string; count: number }[];
+  velocity: { sprint: string; count: number; status: string }[];
+  throughput: { date: string; created: number; cumulative: number }[];
+  cached: boolean;
+}
+
 export type NotificationType = "TASK_ASSIGNED" | "TASK_COMMENTED";
 
 export interface Notification {

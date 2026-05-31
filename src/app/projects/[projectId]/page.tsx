@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Activity, ArrowLeft, KanbanSquare, Loader2, Plus, Rocket } from "lucide-react";
+import {
+  Activity,
+  ArrowLeft,
+  ChartColumn,
+  KanbanSquare,
+  Loader2,
+  Plus,
+  Rocket,
+} from "lucide-react";
 import { api, ApiClientError } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
 import { Button } from "@/components/ui/button";
@@ -92,8 +100,19 @@ export default function ProjectPage() {
             <Badge variant="outline" className="font-mono text-primary">
               {project.key}
             </Badge>
-            <div className="ml-auto">
-              <Button variant="outline" size="sm" render={<Link href={`/projects/${project.id}/sprints`} />}>
+            <div className="ml-auto flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                render={<Link href={`/projects/${project.id}/analytics`} />}
+              >
+                <ChartColumn /> Analytics
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                render={<Link href={`/projects/${project.id}/sprints`} />}
+              >
                 <Rocket /> Sprint planning
               </Button>
             </div>
