@@ -1,8 +1,13 @@
 # Project Management Platform
 
+🔗 **Live demo:** [pmp-web.onrender.com](https://pmp-web.onrender.com)
+
 A Jira/Trello-style project management platform: **organizations → projects → boards → tasks**, with Kanban boards, role-based access control, sprint planning, real-time collaboration, notifications, activity logs, and analytics.
 
 Built as a full-stack **Next.js** application (UI + REST API in one app), with supporting worker and realtime processes added in later phases.
+
+> **Note:** the demo runs on Render's free tier, so the first request after a period of
+> inactivity can take ~50 seconds while the service wakes up (cold start).
 
 ## Tech stack
 
