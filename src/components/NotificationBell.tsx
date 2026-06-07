@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { api } from "@/lib/api";
-import { getSocket } from "@/lib/socket";
+import { connectSocket, getSocketIfReady } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import { timeAgo } from "@/lib/ui";
 import type { Notification } from "@/lib/types";
@@ -31,12 +31,17 @@ export function NotificationBell() {
   useEffect(() => {
     refresh();
     const t = setInterval(refresh, 30000);
-    const socket = getSocket();
+    let cancelled = false;
     const onNotification = () => refresh();
-    socket.on("notification", onNotification);
+    connectSocket().then((socket) => {
+      if (cancelled) return;
+      socket.on("notification", onNotification);
+    });
     return () => {
+      cancelled = true;
       clearInterval(t);
-      socket.off("notification", onNotification);
+      const socket = getSocketIfReady();
+      if (socket) socket.off("notification", onNotification);
     };
   }, []);
 

@@ -25,7 +25,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { api, ApiClientError } from "@/lib/api";
-import { getSocket } from "@/lib/socket";
+import { connectSocket, getSocketIfReady } from "@/lib/socket";
 import { TopBar } from "@/components/TopBar";
 import { TaskDialog } from "@/components/board/TaskDialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -93,13 +93,20 @@ export default function BoardPage() {
   useEffect(() => {
     const projectId = board?.projectId;
     if (!projectId) return;
-    const socket = getSocket();
-    socket.emit("join:project", projectId);
+    let cancelled = false;
     const onUpdate = () => loadRef.current();
-    socket.on("project:updated", onUpdate);
+    connectSocket().then((socket) => {
+      if (cancelled) return;
+      socket.emit("join:project", projectId);
+      socket.on("project:updated", onUpdate);
+    });
     return () => {
-      socket.off("project:updated", onUpdate);
-      socket.emit("leave:project", projectId);
+      cancelled = true;
+      const socket = getSocketIfReady();
+      if (socket) {
+        socket.off("project:updated", onUpdate);
+        socket.emit("leave:project", projectId);
+      }
     };
   }, [board?.projectId]);
 

@@ -8,7 +8,8 @@ import { jwtVerify } from "jose";
 // app uses, lets clients join project/user rooms, and relays events published to
 // Redis (by the Next.js API) out to those rooms.
 
-const PORT = Number(process.env.REALTIME_PORT ?? 4001);
+// Render (and most PaaS) inject PORT; fall back to REALTIME_PORT locally.
+const PORT = Number(process.env.PORT ?? process.env.REALTIME_PORT ?? 4001);
 const REALTIME_CHANNEL = "pmp:realtime";
 const ACCESS_COOKIE = "pmp_access";
 

@@ -1,0 +1,98 @@
+# Render Blueprint — deploys the whole stack from this repo.
+# Render dashboard → New + → Blueprint → pick this repo → Apply.
+#
+# Free-tier note: web services, PostgreSQL, and Key Value are free-eligible.
+# Background workers require a paid plan, so the optional `pmp-worker` service is
+# left commented out. DB migrations are run by the realtime service's
+# preDeployCommand instead of a separate worker.
+
+databases:
+  - name: pmp-db
+    plan: free
+    postgresMajorVersion: "16"
+
+envVarGroups:
+  # Shared secrets so the web app (signs tokens) and realtime server (verifies
+  # them) use the SAME values. generateValue creates them once for the group.
+  - name: pmp-secrets
+    envVars:
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+
+services:
+  # ---- Redis / Key Value: cache, realtime pub/sub, job queue ----
+  - name: pmp-redis
+    type: keyvalue
+    plan: free
+    ipAllowList: [] # internal connections only
+
+  # ---- Realtime Socket.IO server (also runs DB migrations on deploy) ----
+  - name: pmp-realtime
+    type: web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.node
+    dockerContext: .
+    dockerCommand: npx tsx server/realtime.ts
+    preDeployCommand: npx prisma migrate deploy
+    healthCheckPath: /
+    envVars:
+      - fromGroup: pmp-secrets
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pmp-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: pmp-redis
+          type: keyvalue
+          property: connectionString
+
+  # ---- Next.js web app (UI + REST API) ----
+  - name: pmp-web
+    type: web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /login
+    envVars:
+      - fromGroup: pmp-secrets
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pmp-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: pmp-redis
+          type: keyvalue
+          property: connectionString
+      # The browser asks the web app where realtime lives; we pass the realtime
+      # service's hostname and the app turns it into https://<host>.
+      - key: REALTIME_PUBLIC_HOST
+        fromService:
+          name: pmp-realtime
+          type: web
+          property: host
+
+  # ---- OPTIONAL background worker (requires a PAID plan on Render) ----
+  # Uncomment to enable BullMQ email-job processing. Without it, in-app
+  # notifications still work; only the simulated email side-job is skipped.
+  #
+  # - name: pmp-worker
+  #   type: worker
+  #   runtime: docker
+  #   plan: starter
+  #   dockerfilePath: ./Dockerfile.node
+  #   dockerContext: .
+  #   dockerCommand: npx tsx server/worker.ts
+  #   envVars:
+  #     - key: REDIS_URL
+  #       fromService:
+  #         name: pmp-redis
+  #         type: keyvalue
+  #         property: connectionString
