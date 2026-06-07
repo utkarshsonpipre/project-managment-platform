@@ -34,9 +34,6 @@ yarn-error.log*
 .env*
 !.env.example
 
-# claude code local settings
-.claude/
-
 # stray editor temp files
 *.tmp.*
 
