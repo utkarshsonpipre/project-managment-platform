@@ -35,8 +35,9 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile.node
     dockerContext: .
-    dockerCommand: npx tsx server/realtime.ts
-    preDeployCommand: npx prisma migrate deploy
+    # Free tier doesn't allow preDeployCommand, so run migrations at startup
+    # (migrate deploy is idempotent) and then start the realtime server.
+    dockerCommand: npx prisma migrate deploy && npx tsx server/realtime.ts
     healthCheckPath: /
     envVars:
       - fromGroup: pmp-secrets
